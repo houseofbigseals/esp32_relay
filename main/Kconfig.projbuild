@@ -1,0 +1,107 @@
+menu "Example Configuration"
+
+    config EXAMPLE_BASIC_AUTH
+        bool "Basic Authentication"
+        default n
+        help
+            Basic Authentication is a method for an HTTP user agent (e.g. a web browser)
+            to provide a user name and password when making a request. It is the simplest
+            technique for enforcing access controls to web resources. because it doesn't
+            require cookies, session identifiers, or login pages; rather, it uses standard
+            fields in the HTTP header.
+            Note that, Basic Authentication is not encrypted channel and also easy to retrieve
+            credentials as they are sent in plain text format.
+
+    config EXAMPLE_BASIC_AUTH_USERNAME
+        string "Basic Authenticate User Name"
+        depends on EXAMPLE_BASIC_AUTH
+        default "ESP32"
+        help
+            The client's user name which used for basic authenticate.
+
+    config EXAMPLE_BASIC_AUTH_PASSWORD
+        string "Basic Authenticate Password"
+        depends on EXAMPLE_BASIC_AUTH
+        default "ESP32Webserver"
+        help
+            The client's password which used for basic authenticate.
+    
+    config MY_MDNS_NAME
+        string "MDNS name to find device in local network"
+        default "esp32_pwm_lamp_0"
+        help
+            Device will be found as <devicename>.local
+            mDNS works by using a multicast address (224.0.0.251) over which 
+            it sends and receives network packets. When an mDNS-enabled device
+            needs to resolve a hostname to an IP address, it sends a query 
+            across the network. Any device with a matching hostname will 
+            then respond directly with its IP address.
+    
+    config PCB_SENSOR_ADDR
+        string "The addr of DS18B20 mounted on pcb"
+        default "unknown"
+        help 
+            ds18b20 have hardware address in ROM, looks like 96092426B912FF28, 
+            copy it here as string if you know it. Otherwise device will use first found 
+            ds18b20 device on 1-wire bus as pcb temp sensor. So if you dont know addr, disconnect
+            other ds18b20 from device and see uart logs. The one that will be found is built-in sensor.
+                
+
+    config WG_PRIVATE_KEY
+        string "Wireguard Private Key"
+        default "IsvT72MAXzA8EtV0FSD1QT59B4x0oe6Uea5rd/dDzhE="
+        help
+            Private key of the WireGuard device.
+
+    config WG_LOCAL_IP_ADDRESS
+        string "Wireguard local IP address (inside wg net)"
+        default "192.168.4.58"
+        help
+            Local IP address of the WireGuard device.
+
+    config WG_LOCAL_IP_NETMASK
+        string "Wireguard local netmask (inside wg net)"
+        default "255.255.255.0"
+        help
+            Netmask of the local network the WireGuard device belongs to.
+
+    config WG_LOCAL_PORT
+        int "Wireguard local port"
+        default 51823
+        help
+            Local port to listen.
+
+    config WG_PEER_PUBLIC_KEY
+        string "Wireguard remote peer public key"
+        default "FjrsQ/HD1Q8fUlFILIasDlOuajMeZov4NGqMJpkswiw="
+        help
+            Public key of the remote peer.
+
+    config WG_PRESHARED_KEY
+        string "Wireguard pre-shared symmetric key"
+        default ""
+        help
+            Public key of the remote peer.
+
+    config WG_PEER_ADDRESS
+        string "Wireguard remote peer address"
+        default "demo.wireguard.com"
+        help
+            Address of the remote peer.
+
+    config WG_PEER_PORT
+        int "Wireguard remote peer port"
+        default 51823
+        help
+            Port number of the remote peer.
+
+    config WG_PERSISTENT_KEEP_ALIVE
+        int "Interval to send an authenticated empty packet"
+        default 30
+        help
+            A seconds interval, between 1 and 65535 inclusive, of how often to
+            send an authenticated empty packet to the peer for the purpose of
+            keeping a stateful firewall or NAT mapping valid persistently
+
+
+endmenu
