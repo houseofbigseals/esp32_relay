@@ -38,6 +38,9 @@
  *
  * BSD Licensed as described in the file LICENSE
  */
+
+// https://github.com/zorxx/dht
+
 //#include "dht.h"
 
 #include <freertos/FreeRTOS.h>
