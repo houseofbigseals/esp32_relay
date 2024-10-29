@@ -22,7 +22,7 @@
 #include "esp_eth.h"
 #include <cJSON.h>
 #include "driver/gpio.h"
-
+#include "mdns.h"
 
 /* A simple example that demonstrates how to create GET and POST
  * handlers for the web server.
@@ -33,10 +33,10 @@
 static const char *TAGG = "http_server";
 
 typedef struct device_state{
-    bool ch0;
-    bool ch1;
-    bool ch2;
-    bool ch3;
+    int ch0;
+    int ch1;
+    int ch2;
+    int ch3;
     float pcb_temp;
     float roots_temp;
     float ext_temp;
@@ -88,10 +88,10 @@ cJSON *create_json_from_device_state_safe() {
         }
         
         // Add fields from the device_state struct to the cJSON object
-        cJSON_AddBoolToObject(json, "ch0", !global_device_state.ch0);
-        cJSON_AddBoolToObject(json, "ch1", !global_device_state.ch1);
-        cJSON_AddBoolToObject(json, "ch2", !global_device_state.ch2);
-        cJSON_AddBoolToObject(json, "ch3", !global_device_state.ch3);
+        cJSON_AddNumberToObject(json, "ch0", !global_device_state.ch0);
+        cJSON_AddNumberToObject(json, "ch1", !global_device_state.ch1);
+        cJSON_AddNumberToObject(json, "ch2", !global_device_state.ch2);
+        cJSON_AddNumberToObject(json, "ch3", !global_device_state.ch3);
         cJSON_AddNumberToObject(json, "pcb_temp", global_device_state.pcb_temp);
         cJSON_AddNumberToObject(json, "roots_temp", global_device_state.roots_temp);
         cJSON_AddNumberToObject(json, "ext_temp", global_device_state.ext_temp);
@@ -170,9 +170,181 @@ static const httpd_uri_t info = {
     .uri       = "/info",
     .method    = HTTP_GET,
     .handler   = info_get_handler,
-    /* Let's pass response string in user
-     * context to demonstrate it's usage */
+    //Let's pass response string in user
+    // context to demonstrate it's usage 
     .user_ctx  = NULL  // "Hello World!"
+};
+
+// An HTTP GET handler for ext temp data
+static esp_err_t ext_temp_get_handler(httpd_req_t *req)
+{
+    char*  buf;
+    size_t buf_len;
+    float res = -255;
+
+    // update time in global state struct
+    // for now we cannot read data from second sensor
+    if (xSemaphoreTake(device_state_mutex, portMAX_DELAY) == pdTRUE) {
+        global_device_state.uptime = esp_timer_get_time()/1000000; // Cast to double for int64_t
+        res = global_device_state.ext_temp;
+        // Release the mutex after accessing the shared data
+        xSemaphoreGive(device_state_mutex);
+    }
+    // convert to string
+    int len = snprintf(NULL, 0, "%f", res);
+    char *result = malloc(len + 1);
+    snprintf(result, len + 1, "%f", res);
+    ESP_LOGI(TAGG, "Requested ext_temp: %s", result);
+
+    // send it back
+    httpd_resp_send(req, result, HTTPD_RESP_USE_STRLEN);
+    free(result);
+    return ESP_OK;
+}
+
+static const httpd_uri_t ext_temp = {
+    .uri       = "/ext_temp",
+    .method    = HTTP_GET,
+    .handler   = ext_temp_get_handler,
+    .user_ctx  = NULL
+};
+
+
+// An HTTP GET handler for ext hum data 
+static esp_err_t ext_hum_get_handler(httpd_req_t *req)
+{
+    char*  buf;
+    size_t buf_len;
+    float res = -255;
+
+    // update time in global state struct
+    // for now we cannot read data from second sensor
+    if (xSemaphoreTake(device_state_mutex, portMAX_DELAY) == pdTRUE) {
+        global_device_state.uptime = esp_timer_get_time()/1000000; // Cast to double for int64_t
+        res = global_device_state.ext_hum;
+        // Release the mutex after accessing the shared data
+        xSemaphoreGive(device_state_mutex);
+    }
+    // convert to string
+    int len = snprintf(NULL, 0, "%f", res);
+    char *result = malloc(len + 1);
+    snprintf(result, len + 1, "%f", res);
+    ESP_LOGI(TAGG, "Requested ext_hum: %s", result);
+
+    // send it back
+    httpd_resp_send(req, result, HTTPD_RESP_USE_STRLEN);
+    free(result);
+    return ESP_OK;
+}
+
+static const httpd_uri_t ext_hum = {
+    .uri       = "/ext_hum",
+    .method    = HTTP_GET,
+    .handler   = ext_hum_get_handler,
+    .user_ctx  = NULL  
+};
+
+// An HTTP GET handler for int hum data 
+static esp_err_t int_hum_get_handler(httpd_req_t *req)
+{
+    char*  buf;
+    size_t buf_len;
+    float res = -255;
+
+    // update time in global state struct
+    // for now we cannot read data from second sensor
+    if (xSemaphoreTake(device_state_mutex, portMAX_DELAY) == pdTRUE) {
+        global_device_state.uptime = esp_timer_get_time()/1000000; // Cast to double for int64_t
+        res = global_device_state.int_hum;
+        // Release the mutex after accessing the shared data
+        xSemaphoreGive(device_state_mutex);
+    }
+    // convert to string
+    int len = snprintf(NULL, 0, "%f", res);
+    char *result = malloc(len + 1);
+    snprintf(result, len + 1, "%f", res);
+    ESP_LOGI(TAGG, "Requested int_hum: %s", result);
+
+    // send it back
+    httpd_resp_send(req, result, HTTPD_RESP_USE_STRLEN);
+    free(result);
+    return ESP_OK;
+}
+
+static const httpd_uri_t int_hum = {
+    .uri       = "/int_hum",
+    .method    = HTTP_GET,
+    .handler   = int_hum_get_handler,
+    .user_ctx  = NULL
+};
+
+// An HTTP GET handler for int temp data 
+static esp_err_t int_temp_get_handler(httpd_req_t *req)
+{
+    char*  buf;
+    size_t buf_len;
+    float res = -255;
+
+    // update time in global state struct
+    // for now we cannot read data from second sensor
+    if (xSemaphoreTake(device_state_mutex, portMAX_DELAY) == pdTRUE) {
+        global_device_state.uptime = esp_timer_get_time()/1000000; // Cast to double for int64_t
+        res = global_device_state.int_temp;
+        // Release the mutex after accessing the shared data
+        xSemaphoreGive(device_state_mutex);
+    }
+    // convert to string
+    int len = snprintf(NULL, 0, "%f", res);
+    char *result = malloc(len + 1);
+    snprintf(result, len + 1, "%f", res);
+    ESP_LOGI(TAGG, "Requested int_temp: %s", result);
+
+    // send it back
+    httpd_resp_send(req, result, HTTPD_RESP_USE_STRLEN);
+    free(result);
+    return ESP_OK;
+}
+
+static const httpd_uri_t int_temp = {
+    .uri       = "/int_temp",
+    .method    = HTTP_GET,
+    .handler   = int_temp_get_handler,
+    .user_ctx  = NULL
+};
+
+// An HTTP GET handler for roots temp data 
+static esp_err_t roots_temp_get_handler(httpd_req_t *req)
+{
+    char*  buf;
+    size_t buf_len;
+    float res = -255;
+
+    // update time in global state struct
+    // for now we cannot read data from second sensor
+    if (xSemaphoreTake(device_state_mutex, portMAX_DELAY) == pdTRUE) {
+        global_device_state.uptime = esp_timer_get_time()/1000000; // Cast to double for int64_t
+        res = global_device_state.roots_temp;
+        // Release the mutex after accessing the shared data
+        xSemaphoreGive(device_state_mutex);
+    }
+    // convert to string
+    int len = snprintf(NULL, 0, "%f", res);
+    char *result = malloc(len + 1);
+    snprintf(result, len + 1, "%f", res);
+    ESP_LOGI(TAGG, "Requested roots_temp: %s", result);
+
+    // send it back
+    httpd_resp_send(req, result, HTTPD_RESP_USE_STRLEN);
+    free(result);
+    return ESP_OK;
+}
+
+
+static const httpd_uri_t roots_temp = {
+    .uri       = "/roots_temp",
+    .method    = HTTP_GET,
+    .handler   = roots_temp_get_handler,
+    .user_ctx  = NULL
 };
 
 /* An HTTP_ANY handler */
@@ -225,9 +397,7 @@ esp_err_t http_404_error_handler(httpd_req_t *req, httpd_err_code_t err)
 }
 
 // device can be controlled via POST request like that
-// curl -X POST http://esp32_pwm_lamp_0.local/pwm -H 'Content-Type: application/json' -d '{"channel":0,"duty":100}'
-
-
+// curl -X POST http://10.10.0.5/relay -H 'Content-Type: application/json' -d '{"channel":3,"state": 1}'
 static esp_err_t relay_post_handler(httpd_req_t *req)
 {
     char buf[100];
@@ -284,7 +454,7 @@ static esp_err_t relay_post_handler(httpd_req_t *req)
     uint channel_value = channel->valueint;
     uint state_value = state->valueint;
 
-    ESP_LOGI(TAGG, "Requested update - PWM channel: %d, duty: %d", channel_value, state_value);
+    ESP_LOGI(TAGG, "Requested update - relay channel: %d, state: %d", channel_value, state_value);
 
     // Work with the values - for now just here
     // in future - using queue
@@ -362,6 +532,59 @@ static const httpd_uri_t relay = {
     .user_ctx  = NULL
 };
 
+// curl -X POST http://esp32_relay_1.local/reset -H 'Content-Type: text/html' -d 'force_reset'
+static esp_err_t reset_post_handler(httpd_req_t *req)
+{
+    char buf[100];
+    int ret = 0;
+    int remaining = req->content_len;
+
+    // Read the data from the request
+    while (remaining > 0) {
+        // This will copy the request body into the buffer
+        if ((ret = httpd_req_recv(req, buf, MIN(remaining, sizeof(buf)))) <= 0) {
+            if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
+                // Retry receiving if timeout occurred
+                continue;
+            }
+            return ESP_FAIL;
+        }
+        remaining -= ret;
+    }
+
+    // Null-terminate the buffer
+    buf[ret] = '\0';
+    ESP_LOGI(TAGG, "Received: %s", buf);
+
+    // check if it is real desire to reset
+    const char* reset_command = "force_reset";
+    if (strcmp(buf, reset_command) == 0)
+    {
+        ESP_LOGI(TAGG, "User have sent force reset command, so rebooting");
+        char* resp = "User have sent force reset command, so rebooting\n";
+        httpd_resp_send(req, resp, strlen(resp));
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        // make reset
+        esp_restart();
+        return ESP_OK;
+    }
+    else
+    {
+        ESP_LOGI(TAGG, "User have sent incorrect reset command, so no rebooting");
+        char* resp = "User have sent incorrect reset command, so no rebooting\n";
+        httpd_resp_send(req, resp, strlen(resp));
+        return ESP_OK;
+    }
+}
+
+static const httpd_uri_t reset = {
+    .uri       = "/reset",
+    .method    = HTTP_POST,
+    .handler   = reset_post_handler,
+    .user_ctx  = NULL
+};
+
+
 static httpd_handle_t start_webserver(void)
 {
     httpd_handle_t server = NULL;
@@ -375,6 +598,12 @@ static httpd_handle_t start_webserver(void)
         ESP_LOGI(TAGG, "Registering URI handlers");
         httpd_register_uri_handler(server, &info);
         httpd_register_uri_handler(server, &relay);
+        httpd_register_uri_handler(server, &ext_temp);
+        httpd_register_uri_handler(server, &int_temp); 
+        httpd_register_uri_handler(server, &ext_hum);
+        httpd_register_uri_handler(server, &int_hum);
+        httpd_register_uri_handler(server, &roots_temp);
+        httpd_register_uri_handler(server, &reset);
         httpd_register_uri_handler(server, &any);
         #if CONFIG_EXAMPLE_BASIC_AUTH
         httpd_register_basic_auth(server);
