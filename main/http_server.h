@@ -425,7 +425,7 @@ static esp_err_t relay_post_handler(httpd_req_t *req)
     cJSON *json = cJSON_Parse(buf);
     if (json == NULL) {
         ESP_LOGE(TAGG, "Failed to parse JSON");
-        char* resp = "Failed to parse JSON\n";
+        char* resp = "RESULT: ERROR Failed to parse JSON\n";
         httpd_resp_send(req, resp, strlen(resp));
         return ESP_FAIL;
     }
@@ -434,7 +434,7 @@ static esp_err_t relay_post_handler(httpd_req_t *req)
     cJSON *channel = cJSON_GetObjectItem(json, "channel");
     if (!cJSON_IsNumber(channel)) {
         ESP_LOGE(TAGG, "Invalid channel");
-        char* resp = "Invalid channel type\n";
+        char* resp = "RESULT: ERROR Invalid channel type\n";
         httpd_resp_send(req, resp, strlen(resp));
         cJSON_Delete(json);
         return ESP_FAIL;
@@ -444,7 +444,7 @@ static esp_err_t relay_post_handler(httpd_req_t *req)
     cJSON *state = cJSON_GetObjectItem(json, "state");
     if (!cJSON_IsNumber(state)) {
         ESP_LOGE(TAGG, "Invalid state");
-        char* resp = "Invalid state type\n";
+        char* resp = "RESULT: ERROR Invalid state type\n";
         httpd_resp_send(req, resp, strlen(resp));
         cJSON_Delete(json);
         return ESP_FAIL;
@@ -507,14 +507,14 @@ static esp_err_t relay_post_handler(httpd_req_t *req)
             // Release the mutex after accessing the shared data
             xSemaphoreGive(device_state_mutex);
         }
-        char resp[50];  // Create a buffer to hold the formatted string
-        snprintf(resp, sizeof(resp), "Relay: %d, set to state: %d\n", channel_value, state_value);
+        char resp[60];  // Create a buffer to hold the formatted string
+        snprintf(resp, sizeof(resp), "RESULT: SUCCESS\n Relay: %d, set to state: %d\n", channel_value, state_value);
         // Send a response
         httpd_resp_send(req, resp, strlen(resp));
     }
     else
     {
-        char* resp = "Relay error: invalid params!\n";
+        char* resp = "RESULT: ERROR invalid params!\n";
         httpd_resp_send(req, resp, strlen(resp));
     }
 
